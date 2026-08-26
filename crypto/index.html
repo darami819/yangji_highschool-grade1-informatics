@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>암호 연구소 탈출</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Special+Elite&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ============================================================
+     선생님 커스터마이징 영역은 <script> 태그 맨 위 CONFIG 참고
+     ============================================================ */
+        :root {
+            --bg: #0d1117;
+            --bg2: #141a23;
+            --paper: #e9e0c8;
+            --paper-line: #c9bd9c;
+            --brass: #c19a49;
+            --brass-dim: #6b5527;
+            --red: #8b2635;
+            --ink: #e7e1cf;
+            --ink-dim: #8b93a3;
+            --ok: #7fbf8f;
+            --radius: 2px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(193, 154, 73, 0.035) 0px, rgba(193, 154, 73, 0.035) 1px, transparent 1px, transparent 48px),
+                repeating-linear-gradient(90deg, rgba(193, 154, 73, 0.035) 0px, rgba(193, 154, 73, 0.035) 1px, transparent 1px, transparent 48px);
+        }
+
+        .folder {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 780px;
+            background: var(--bg2);
+            border: 1px solid var(--brass-dim);
+            border-radius: var(--radius);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 0 60px rgba(193, 154, 73, 0.02);
+        }
+
+        .tabs {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--brass-dim);
+            background: #10151d;
+        }
+
+        .tabs .label {
+            font-size: 10.5px;
+            letter-spacing: 2.5px;
+            color: var(--brass-dim);
+            text-transform: uppercase;
+        }
+
+        .files {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .file-tab {
+            font-family: 'Special Elite', monospace;
+            font-size: 10px;
+            color: var(--ink-dim);
+            padding: 3px 6px;
+            border: 1px solid var(--brass-dim);
+            border-radius: 1px;
+            background: transparent;
+        }
+
+        .file-tab.active {
+            color: var(--bg);
+            background: var(--brass);
+            border-color: var(--brass);
+        }
+
+        .timer {
+            font-size: 13px;
+            color: var(--brass);
+            letter-spacing: 1px;
+        }
+
+        .stage {
+            padding: 34px 30px 30px;
+            display: none;
+        }
+
+        .stage.active {
+            display: block;
+            animation: fadein .45s ease;
+        }
+
+        @keyframes fadein {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stamp {
+            position: absolute;
+            top: 26px;
+            right: 34px;
+            z-index: 2;
+            border: 3px solid var(--red);
+            color: var(--red);
+            font-family: 'Special Elite', monospace;
+            font-size: 13px;
+            letter-spacing: 2px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transform: rotate(-9deg);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            font-size: 10.5px;
+            letter-spacing: 2.5px;
+            color: var(--brass);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-family: 'Special Elite', monospace;
+            font-size: 23px;
+            margin: 0 0 14px;
+            color: var(--ink);
+            letter-spacing: 0.5px;
+        }
+
+        .narrative {
+            font-size: 14px;
+            line-height: 1.85;
+            color: var(--ink-dim);
+            margin-bottom: 18px;
+            border-left: 2px solid var(--brass-dim);
+            padding-left: 14px;
+        }
+
+        .doc-card {
+            background: var(--paper);
+            color: #2a2416;
+            border-radius: 1px;
+            padding: 16px 18px;
+            margin: 16px 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .doc-card .cipher-text {
+            font-size: 17px;
+            letter-spacing: 3px;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        .doc-card .meta {
+            font-size: 11px;
+            color: #6b6142;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        .rule {
+            font-size: 12.5px;
+            color: var(--ink-dim);
+            margin: 8px 0 18px;
+            line-height: 1.75;
+        }
+
+        .rule b {
+            color: var(--brass);
+        }
+
+        /* 슬라이드 스트립 */
+        .wheel-wrap {
+            margin: 18px 0;
+            padding: 16px;
+            background: #0a0e14;
+            border: 1px solid var(--brass-dim);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .strip-row {
+            display: flex;
+        }
+
+        .letter-box {
+            width: 26px;
+            height: 30px;
+            flex: 0 0 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--ink-dim);
+            border-right: 1px solid rgba(193, 154, 73, 0.15);
+        }
+
+        .strip-plain .letter-box {
+            color: var(--ink);
+        }
+
+        .strip-cipher {
+            transition: transform .15s ease;
+        }
+
+        .strip-cipher .letter-box {
+            color: var(--brass);
+        }
+
+        .shift-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .shift-controls input[type=range] {
+            flex: 1;
+            accent-color: var(--brass);
+        }
+
+        .shift-val {
+            font-size: 13px;
+            color: var(--brass);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .preview {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--ok);
+            letter-spacing: 2px;
+            min-height: 18px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #0a0e14;
+            border: 1px solid var(--brass-dim);
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13.5px;
+            color: var(--ink);
+            transition: all .15s;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--brass);
+            background: rgba(193, 154, 73, 0.05);
+        }
+
+        .quiz-option input[type=radio],
+        .quiz-option input[type=checkbox] {
+            accent-color: var(--brass);
+            cursor: pointer;
+        }
+
+        input[type=text] {
+            flex: 1;
+            min-width: 180px;
+            background: #0a0e14;
+            border: 1px solid var(--brass-dim);
+            color: var(--brass);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            letter-spacing: 2px;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        input[type=text]:focus {
+            border-color: var(--brass);
+            box-shadow: 0 0 0 2px rgba(193, 154, 73, 0.15);
+        }
+
+        input[type=text].name-input {
+            text-transform: none;
+        }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            border: 1px solid var(--brass-dim);
+            background: transparent;
+            color: var(--brass);
+            transition: all .15s;
+        }
+
+        button:hover {
+            background: rgba(193, 154, 73, 0.08);
+            border-color: var(--brass);
+        }
+
+        button.primary {
+            background: var(--brass);
+            color: #1a1408;
+            font-weight: 700;
+            border-color: var(--brass);
+        }
+
+        button.primary:hover {
+            background: #d4ac5c;
+        }
+
+        button.ghost {
+            border-color: transparent;
+            color: var(--ink-dim);
+            font-size: 12px;
+            padding: 8px 4px;
+        }
+
+        button.ghost:hover {
+            color: var(--brass);
+            background: transparent;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            margin-top: 12px;
+            font-size: 13px;
+            min-height: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .feedback.err {
+            color: var(--red);
+        }
+
+        .feedback.ok {
+            color: var(--ok);
+        }
+
+        .success-title {
+            font-family: 'Special Elite', monospace;
+            font-size: 26px;
+            color: var(--ok);
+            text-align: center;
+            margin: 6px 0 4px;
+        }
+
+        .success-sub {
+            text-align: center;
+            color: var(--ink-dim);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin: 16px 0 22px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat .num {
+            font-size: 22px;
+            color: var(--brass);
+        }
+
+        .stat .lab {
+            font-size: 10px;
+            color: var(--ink-dim);
+            letter-spacing: 2px;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .center {
+            display: flex;
+            justify-content: center;
+        }
+
+        table.leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+            font-size: 12.5px;
+        }
+
+        table.leaderboard th,
+        table.leaderboard td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(193, 154, 73, 0.15);
+            text-align: left;
+        }
+
+        table.leaderboard th {
+            color: var(--brass);
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        table.leaderboard td {
+            color: var(--ink-dim);
+        }
+
+        table.leaderboard tr.me td {
+            color: var(--ok);
+            font-weight: 700;
+        }
+
+        .lb-empty {
+            font-size: 12.5px;
+            color: var(--ink-dim);
+            padding: 14px 0;
+            text-align: center;
+        }
+
+        @media (max-width:520px) {
+            .stage {
+                padding: 24px 18px;
+            }
+
+            h1 {
+                font-size: 19px;
+            }
+
+            .letter-box {
+                width: 20px;
+                flex-basis: 20px;
+                font-size: 11px;
+            }
+
+            .stamp {
+                top: 16px;
+                right: 16px;
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="folder">
+        <div class="tabs">
+            <span class="label">2026년 양지고등학교 1학년 정보 // 암호 해독 미션</span>
+            <div class="files" id="files">
+                <div class="file-tab active" data-i="0">S0</div>
+                <div class="file-tab" data-i="1">S1</div>
+                <div class="file-tab" data-i="2">S2</div>
+                <div class="file-tab" data-i="3">S3</div>
+                <div class="file-tab" data-i="4">S4</div>
+                <div class="file-tab" data-i="5">S5</div>
+                <div class="file-tab" data-i="6">S6</div>
+                <div class="file-tab" data-i="7">S7</div>
+                <div class="file-tab" data-i="8">S8</div>
+                <div class="file-tab" data-i="9">S9</div>
+                <div class="file-tab" data-i="10">S10</div>
+                <div class="file-tab" data-i="11">S11</div>
+                <div class="file-tab" data-i="12">S12</div>
+                <div class="file-tab" data-i="13">S13</div>
+            </div>
+            <span class="timer" id="timer">00:00</span>
+        </div>
+
+        <!-- STAGE 0 : 인트로 -->
+        <div class="stage active" data-stage="0" style="position:relative;">
+            <div class="stamp">1급 기밀</div>
+            <div class="eyebrow">CASE FILE 0 · BRIEFING</div>
+            <h1>암호 연구소, 마지막 근무일</h1>
+            <div class="narrative">
+                오늘 밤, 연구소의 모든 문서는 두 가지 방식으로 잠겼다.<br>
+                하나는 글자를 <b style="color:var(--brass)">다른 글자로 바꾸는 방식(치환)</b>,<br>
+                다른 하나는 글자의 <b style="color:var(--brass)">순서를 뒤섞는 방식(전치)</b>이다.<br><br>
+                요원, 학번(ex. 10125)을 등록하고 임무를 시작하라. 탈출 기록은 본부 리더보드에 저장된다.<br>
+                각 스테이지에 나오는 <b style="color:var(--brass)">평문</b>을 적어두고, 맨마지막에 탈출할 때 조합하여 탈출하자.<br>
+                그럼 행운을 빈다.
+            </div>
+            <div class="input-row">
+                <input type="text" id="agent-name" class="name-input" placeholder="이름 또는 학번을 입력하세요" maxlength="20">
+                <button class="primary" id="start-btn">임무 시작 →</button>
+            </div>
+            <div class="feedback err" id="name-err"></div>
+        </div>
+
+        <!-- STAGE 1 : 암호화 기본 개념 퀴즈 -->
+        <div class="stage" data-stage="1">
+            <div class="eyebrow">STAGE 1 · 기본 개념</div>
+            <h1>1라운드 — 암호의 기본 구성요소</h1>
+            <div class="narrative">
+                평문을 암호문으로 바꾸는 과정을 '암호화'라 한다. 그렇다면 암호문을 다시 평문으로 복원하는 과정은 무엇일까?
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans1" placeholder="정답 입력 (한글)">
+                <button class="primary" onclick="checkStage(1)">제출</button>
+            </div>
+            <div class="feedback" id="fb1"></div>
+        </div>
+
+        <!-- STAGE 2 : 카이사르 치환 암호 1 (COMPUTER) -->
+        <div class="stage" data-stage="2">
+            <div class="eyebrow">STAGE 2 · 치환형 암호 (카이사르)</div>
+            <h1>2라운드 — 밀려버린 알파벳</h1>
+            <div class="narrative">
+                알파벳을 오른쪽으로 <b style="color:var(--brass)">2글자씩</b> 밀어서 암호화된 암호문이다.<br>
+                슬라이더를 이용해 평문을 해독해라.
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text" id="c2-cipher">AMKNSRCP</div>
+            </div>
+
+            <div class="wheel-wrap">
+                <div class="strip-row strip-plain" id="strip-plain"></div>
+                <div class="strip-row strip-cipher" id="strip-cipher"></div>
+                <div class="shift-controls">
+                    <span style="font-size:11px; color:var(--ink-dim);">shift</span>
+                    <input type="range" id="shift-slider" min="0" max="25" value="0">
+                    <span class="shift-val" id="shift-val">0</span>
+                </div>
+                <div class="preview" id="c2-preview"></div>
+            </div>
+
+            <div class="input-row">
+                <input type="text" id="ans2" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(2)">제출</button>
+            </div>
+            <div class="feedback" id="fb2"></div>
+        </div>
+
+        <!-- STAGE 3 : 전치형 암호 1 (OUTPUT) -->
+        <div class="stage" data-stage="3">
+            <div class="eyebrow">STAGE 3 · 전치형 암호</div>
+            <h1>3라운드 — 자리가 바뀐 글자들</h1>
+            <div class="narrative">
+                평문의 각 문자의 위치를 규칙에 따라 재배열된 상태다.<br>
+                <b>키: 3 1 4 2</b> 순서로 위치가 이동되었다. (남는 빈칸은 : 표기)<br>
+                암호문의 글자를 원래 순서대로 재배치하여 평문을 해독해보자.
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">TOPU:U:T</div>
+                <div class="meta">KEY: 3 1 4 2 (4글자 단위 블록)</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans3" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(3)">제출</button>
+            </div>
+            <div class="feedback" id="fb3"></div>
+        </div>
+
+        <!-- STAGE 4 : 대칭키 vs 비대칭키 개념 퀴즈 -->
+        <div class="stage" data-stage="4">
+            <div class="eyebrow">STAGE 4 · 개념 퀴즈</div>
+            <h1>4라운드 — 대칭키 vs 비대칭키</h1>
+            <div class="narrative">
+                비대칭키(공개키) 암호화 방식에 대한 설명으로 <b>옳은 것</b>을 고르시오.
+            </div>
+            <div class="quiz-options">
+                <label class="quiz-option"><input type="radio" name="q4" value="1"> 1. 암호화 키와 복호화 키가 서로 동일하다.</label>
+                <label class="quiz-option"><input type="radio" name="q4" value="2"> 2. 대칭키 방식에 비해 연산 속도가 매우 빠르다.</label>
+                <label class="quiz-option"><input type="radio" name="q4" value="3"> 3. 공개키로 암호화한 데이터는 비밀키로만 복호화할 수
+                    있다.</label>
+                <label class="quiz-option"><input type="radio" name="q4" value="4"> 4. 공개키를 모두에게 공개하면 암호화에 문제가
+                    생긴다.</label>
+            </div>
+            <div class="input-row">
+                <button class="primary" onclick="checkStage(4)">제출</button>
+            </div>
+            <div class="feedback" id="fb4"></div>
+        </div>
+
+        <!-- STAGE 5 : 카이사르 치환 암호 2 (DATA) -->
+        <div class="stage" data-stage="5">
+            <div class="eyebrow">STAGE 5 · 치환형 암호</div>
+            <h1>5라운드 — 5칸 밀린 암호문</h1>
+            <div class="narrative">
+                평문의 각 알파벳이 오른쪽으로 <b style="color:var(--brass)">5글자씩</b> 이동된 상태다.<br>
+                원래 단어를 복원하세요.
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">IFYF</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans5" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(5)">제출</button>
+            </div>
+            <div class="feedback" id="fb5"></div>
+        </div>
+
+        <!-- STAGE 6 : 전치형 암호 2 (ENCRYPTION) -->
+        <div class="stage" data-stage="6">
+            <div class="eyebrow">STAGE 6 · 전치형 암호</div>
+            <h1>6라운드 — 복합 위치 이동</h1>
+            <div class="narrative">
+                10자 단어를 6글자 단위 블록으로 나눈 후, <b style="color:var(--brass)">키(3 2 1 5 4 6)</b>를 적용하여 암호화되었다.<br>
+                평문에 해당하는 단어는 무엇인가?
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">CNEYRPOIT:N:</div>
+                <div class="meta">KEY: 3 2 1 5 4 6</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans6" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(6)">제출</button>
+            </div>
+            <div class="feedback" id="fb6"></div>
+        </div>
+
+        <!-- STAGE 7 : 암호화 기능 퀴즈 -->
+        <div class="stage" data-stage="7">
+            <div class="eyebrow">STAGE 7 · 암호화 기능</div>
+            <h1>7라운드 — 암호의 주요 기능</h1>
+            <div class="narrative">
+                암호 기술을 통해 얻을 수 있는 주요 기능으로 <b>옳지 않은 것을 모두</b> 고르시오.
+            </div>
+            <div class="quiz-options">
+                <label class="quiz-option"><input type="checkbox" name="q7" value="1"> 1. 기밀성</label>
+                <label class="quiz-option"><input type="checkbox" name="q7" value="2"> 2. 무결성</label>
+                <label class="quiz-option"><input type="checkbox" name="q7" value="3"> 3. 비인가 접근 허가</label>
+                <label class="quiz-option"><input type="checkbox" name="q7" value="4"> 4. 부인 방지</label>
+                <label class="quiz-option"><input type="checkbox" name="q7" value="5"> 5. 데이터의 무제한 자동 복제</label>
+            </div>
+            <div class="input-row">
+                <button class="primary" onclick="checkStage(7)">제출</button>
+            </div>
+            <div class="feedback" id="fb7"></div>
+        </div>
+
+        <!-- STAGE 8 : 정보보호의 3원칙 -->
+        <div class="stage" data-stage="8">
+            <div class="eyebrow">STAGE 8 · 정보 보호의 요소들</div>
+            <h1>8라운드 — 정보 보호의 3원칙</h1>
+            <div class="narrative">
+                정보보안의 기본 3원칙(CIA Triad)에 해당하는 3가지 요소를 한국어로 순서대로 쓰시오. (쉼표로 구분)
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans8" placeholder="예: ., .., ..." class="name-input">
+                <button class="primary" onclick="checkStage(8)">제출</button>
+            </div>
+            <div class="feedback" id="fb8"></div>
+        </div>
+
+        <!-- STAGE 9 : 전치형 암호 3 (LEVEL) -->
+        <div class="stage" data-stage="9">
+            <div class="eyebrow">STAGE 9 · 전치형 암호</div>
+            <h1>9라운드 — 5글자 블록 복합 이동</h1>
+            <div class="narrative">
+                제시된 문자열 <b style="color:var(--brass)">LVLEE</b>은 키(13524)</b>가 적용된 암호문이다.<br>
+                원래 순서대로 재배치한 결과(평문)는?
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">LVLEE</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans9" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(9)">제출</button>
+            </div>
+            <div class="feedback" id="fb9"></div>
+        </div>
+
+        <!-- STAGE 10 : 카이사르 치환 암호 3 (역산) -->
+        <div class="stage" data-stage="10">
+            <div class="eyebrow">STAGE 10 · 역산 치환 암호</div>
+            <h1>10라운드 — SHIFT 규칙 분석</h1>
+            <div class="narrative">
+                평문 <b style="color:var(--brass)">OPEN</b>을 변환하여 암호문 <b style="color:var(--brass)">GHWF</b>가 되도록 적용된
+                암호화 알고리즘(SHIFT의 방향과 이동 횟수)을 구하시오.
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">OPEN → GHWF</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans10" placeholder="예: 오른쪽 +3" class="name-input">
+                <button class="primary" onclick="checkStage(10)">제출</button>
+            </div>
+            <div class="feedback" id="fb10"></div>
+        </div>
+
+        <!-- STAGE 11 : 전치형 암호 4 (VACATION) -->
+        <div class="stage" data-stage="11">
+            <div class="eyebrow">STAGE 11 · 전치형 암호</div>
+            <h1>11라운드 — 6글자 블록 복합 이동</h1>
+            <div class="narrative">
+                제시된 문자열 <b style="color:var(--brass)">VATCAI::NO</b>는 평문 VACATION을 전치형 암호 기법으로 암호화한 것이다.<br>
+                어떤 <b style="color:var(--brass)">키</b>를 사용하여 암호화한 것인지 알아내시오.(키의 최대 숫자: 5)
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">VATCAI::NO</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans11" placeholder="암호화/복호화 키 입력. 예: 12345">
+                <button class="primary" onclick="checkStage(11)">제출</button>
+            </div>
+            <div class="feedback" id="fb11"></div>
+        </div>
+
+        <!-- STAGE 12 : 카이사르 치환 암호 4 (END) -->
+        <div class="stage" data-stage="12">
+            <div class="eyebrow">STAGE 12 · 치환형 암호</div>
+            <h1>12라운드 — 오른쪽으로 8칸 밀린 암호문</h1>
+            <div class="narrative">
+                암호문 <b style="color:var(--brass)">MVL</b>를 복호화하여 원래 단어(평문)를 입력하세요.
+            </div>
+            <div class="doc-card">
+                <div class="cipher-text">MVL</div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans12" placeholder="해독한 평문 입력">
+                <button class="primary" onclick="checkStage(12)">제출</button>
+            </div>
+            <div class="feedback" id="fb12"></div>
+        </div>
+
+        <!-- STAGE 13 : 마스터 키 조합 (CODE LOVE) -->
+        <div class="stage" data-stage="13">
+            <div class="eyebrow">FINAL STAGE · 마스터 키</div>
+            <h1>13라운드 — 최종 마스터 코드</h1>
+            <div class="narrative">
+                각 스테이지의 <b style="color:var(--brass)">평문</b>(STAGE 2, 3, 5, 6, 9, 10, 11, 12)의 알파벳 앞글자를 순서대로 모아<br>
+                최종 마스터 코드를 완성하고 입력하세요.<br>
+                *힌트: 총 8글자
+            </div>
+            <div class="input-row">
+                <input type="text" id="ans13" placeholder="최종 마스터 코드 입력 (띄어쓰기 없이)">
+                <button class="primary" onclick="checkStage(13)">탈출 시도</button>
+            </div>
+            <div class="feedback" id="fb13"></div>
+        </div>
+
+        <!-- STAGE 14 : 성공 + 리더보드 -->
+        <div class="stage" data-stage="14">
+            <div class="success-title">임무 완료</div>
+            <div class="success-sub" id="agent-line">요원, 연구소를 무사히 빠져나왔다.<br>축하한다. 모든 암호를 해독했다!</div>
+            <div class="stat-row">
+                <div class="stat">
+                    <div class="num" id="final-time">00:00</div>
+                    <div class="lab">CLEAR TIME</div>
+                </div>
+                <div class="stat">
+                    <div class="num" id="final-score">0</div>
+                    <div class="lab">SCORE (낮을수록 좋음)</div>
+                </div>
+            </div>
+
+            <div class="eyebrow" style="text-align:center;">본부 리더보드 · TOP 10</div>
+            <div id="lb-wrap">
+                <div class="lb-empty" id="lb-loading">기록 불러오는 중...</div>
+            </div>
+            <div class="center" style="margin-top:14px; gap:10px;">
+                <button class="ghost" onclick="loadLeaderboard()">↻ 새로고침</button>
+                <button class="primary" onclick="resetGame()">다시 도전하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================================
+           CONFIG — 게임 정답 설정
+           ============================================================ */
+        const CONFIG = {
+            s1Answer: '복호화',
+            s2Cipher: 'EQORWVGT',
+            s2Answer: 'COMPUTER',
+            s3Answer: 'OUTPUT',
+            s4Answer: '3',
+            s5Answer: 'DATA',
+            s6Answer: 'ENCRYPTION',
+            s7Answers: ['3', '5'],
+            s8Answers: ['기밀성,무결성,가용성', '기밀성, 무결성, 가용성', '기밀성,무결성, 가용성', '기밀성, 무결성,가용성'],
+            s9Answer: 'LEVEL',
+            s10Answers: '왼쪽 -8',
+            s11Answer: '14532',
+            s12Answer: 'END',
+            s13Answer: 'CODELOVE'
+        };
+
+        let agentName = '';
+        let seconds = 0, timerInt = null;
+
+        // ── 카이사르 슬라이드 스트립 생성 ──
+        const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const plainStrip = document.getElementById('strip-plain');
+        const cipherStrip = document.getElementById('strip-cipher');
+        ALPHA.split('').forEach(ch => {
+            const b = document.createElement('div'); b.className = 'letter-box'; b.textContent = ch; plainStrip.appendChild(b);
+        });
+        (ALPHA + ALPHA).split('').forEach(ch => {
+            const b = document.createElement('div'); b.className = 'letter-box'; b.textContent = ch; cipherStrip.appendChild(b);
+        });
+
+        function shiftDecode(text, shift) {
+            return text.split('').map(ch => {
+                if (!/[A-Z]/.test(ch)) return ch;
+                const idx = (ALPHA.indexOf(ch) - shift + 26) % 26;
+                return ALPHA[idx];
+            }).join('');
+        }
+
+        const slider = document.getElementById('shift-slider');
+        const shiftVal = document.getElementById('shift-val');
+        const preview = document.getElementById('c2-preview');
+        function updateShift() {
+            const s = Number(slider.value);
+            shiftVal.textContent = s;
+            cipherStrip.style.transform = `translateX(${-s * 26}px)`;
+            preview.textContent = '미리보기 → ' + shiftDecode(CONFIG.s2Cipher, s);
+        }
+        slider.addEventListener('input', updateShift);
+        updateShift();
+
+        // ── 타이머 ──
+        function startTimer() {
+            timerInt = setInterval(() => {
+                seconds++;
+                const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                const s = String(seconds % 60).padStart(2, '0');
+                document.getElementById('timer').textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        // ── 시작 ──
+        document.getElementById('start-btn').addEventListener('click', () => {
+            const val = document.getElementById('agent-name').value.trim();
+            const err = document.getElementById('name-err');
+            if (!val) { err.textContent = '이름을 입력해야 임무를 시작할 수 있습니다.'; return; }
+            agentName = val; err.textContent = '';
+            startTimer();
+            goStage(1);
+        });
+
+        function goStage(n) {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.querySelector(`.stage[data-stage="${n}"]`).classList.add('active');
+            document.querySelectorAll('.file-tab').forEach(d => {
+                d.classList.toggle('active', Number(d.dataset.i) === n);
+            });
+            if (n === 14) finishGame();
+        }
+
+        function checkStage(n) {
+            const fb = document.getElementById('fb' + n);
+            let isCorrect = false;
+
+            if (n === 1) {
+                const val = document.getElementById('ans1').value.trim();
+                if (val === CONFIG.s1Answer) isCorrect = true;
+            } else if (n === 2) {
+                const val = document.getElementById('ans2').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s2Answer) isCorrect = true;
+            } else if (n === 3) {
+                const val = document.getElementById('ans3').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s3Answer) isCorrect = true;
+            } else if (n === 4) {
+                const selected = document.querySelector('input[name="q4"]:checked');
+                if (selected && selected.value === CONFIG.s4Answer) isCorrect = true;
+            } else if (n === 5) {
+                const val = document.getElementById('ans5').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s5Answer) isCorrect = true;
+            } else if (n === 6) {
+                const val = document.getElementById('ans6').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s6Answer) isCorrect = true;
+            } else if (n === 7) {
+                const selected = Array.from(document.querySelectorAll('input[name="q7"]:checked')).map(el => el.value);
+                if (selected.length === 2 && selected.includes('3') && selected.includes('5')) isCorrect = true;
+            } else if (n === 8) {
+                const val = document.getElementById('ans8').value.trim();
+                if (CONFIG.s8Answers.some(ans => val.replace(/\s+/g, '') === ans.replace(/\s+/g, ''))) isCorrect = true;
+            } else if (n === 9) {
+                const val = document.getElementById('ans9').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s9Answer) isCorrect = true;
+            } else if (n === 10) {
+                const val = document.getElementById('ans10').value.trim();
+                if (CONFIG.s10Answers.includes(val)) isCorrect = true;
+            } else if (n === 11) {
+                const val = document.getElementById('ans11').value.trim().replace(/[^0-9]/g, '');
+                if (val === CONFIG.s11Answer) isCorrect = true;
+            } else if (n === 12) {
+                const val = document.getElementById('ans12').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s12Answer) isCorrect = true;
+            } else if (n === 13) {
+                const val = document.getElementById('ans13').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (val === CONFIG.s13Answer) isCorrect = true;
+            }
+
+            if (isCorrect) {
+                fb.textContent = n === 13 ? '✔ 마스터 코드가 승인되었습니다. 연구소를 탈출합니다!' : '✔ 정답입니다.';
+                fb.className = 'feedback ok';
+                setTimeout(() => { goStage(n + 1); }, 700);
+            } else {
+                fb.textContent = '✘ 정답이 아닙니다. 다시 확인해 보세요.';
+                fb.className = 'feedback err';
+            }
+        }
+
+        // ── 완료 처리 + 리더보드 저장 ──
+        function finishGame() {
+            clearInterval(timerInt);
+            const timeStr = document.getElementById('timer').textContent;
+            const score = seconds;
+            document.getElementById('agent-line').textContent = `요원 "${agentName}", 연구소를 무사히 빠져나왔다.`;
+            document.getElementById('final-time').textContent = timeStr;
+            document.getElementById('final-score').textContent = score;
+            saveRecord(agentName, seconds, score);
+            loadLeaderboard();
+        }
+
+        function saveRecord(name, time, score) {
+            try {
+                const records = JSON.parse(localStorage.getItem('escape_leaderboard_13') || '[]');
+                records.push({ name, time, score, ts: Date.now() });
+                localStorage.setItem('escape_leaderboard_13', JSON.stringify(records));
+            } catch (e) {
+                console.error('기록 저장 실패', e);
+            }
+        }
+
+        function loadLeaderboard() {
+            const wrap = document.getElementById('lb-wrap');
+            wrap.innerHTML = '<div class="lb-empty" id="lb-loading">기록 불러오는 중...</div>';
+
+            try {
+                const records = JSON.parse(localStorage.getItem('escape_leaderboard_13') || '[]');
+                if (records.length === 0) {
+                    wrap.innerHTML = '<div class="lb-empty">아직 기록이 없습니다. 첫 번째 탈출자가 되어보세요!</div>';
+                    return;
+                }
+
+                records.sort((a, b) => a.score - b.score);
+                const top = records.slice(0, 10);
+
+                let html = '<table class="leaderboard"><thead><tr><th>순위</th><th>이름</th><th>탈출 시간</th><th>점수</th></tr></thead><tbody>';
+                top.forEach((e, i) => {
+                    const m = String(Math.floor(e.time / 60)).padStart(2, '0');
+                    const s = String(e.time % 60).padStart(2, '0');
+                    const isMe = e.name === agentName;
+                    html += `<tr class="${isMe ? 'me' : ''}"><td>${i + 1}</td><td>${escapeHtml(e.name)}</td><td>${m}:${s}</td><td>${e.score}초</td></tr>`;
+                });
+                html += '</tbody></table>';
+
+                wrap.innerHTML = html;
+            } catch (e) {
+                wrap.innerHTML = '<div class="lb-empty">리더보드를 불러오지 못했습니다.</div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+        }
+
+        function resetGame() {
+            clearInterval(timerInt);
+            seconds = 0;
+            document.getElementById('timer').textContent = '00:00';
+            for (let i = 1; i <= 13; i++) {
+                const el = document.getElementById('ans' + i);
+                if (el) el.value = '';
+                const fb = document.getElementById('fb' + i);
+                if (fb) fb.textContent = '';
+            }
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            document.getElementById('agent-name').value = '';
+            slider.value = 0; updateShift();
+            goStage(0);
+        }
+    </script>
+</body>
+
+</html>

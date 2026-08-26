@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>양지 코덱 연구소 · 긴급 인코딩 미션</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <style>
+    :root {
+      --void: #0a1120;
+      --panel: #0f1a30;
+      --panel-2: #152341;
+      --line: #233255;
+      --ink: #eef3fb;
+      --ink-dim: #8ea0c2;
+      --cyan: #43e0c5;
+      /* 인코딩(ENCODE) 신호색 */
+      --cyan-soft: rgba(67, 224, 197, 0.14);
+      --amber: #ffb454;
+      /* 디코딩(DECODE) 신호색 */
+      --amber-soft: rgba(255, 180, 84, 0.14);
+      --violet: #b6a2ff;
+      /* 트리/허프만 강조색 */
+      --good: #3ddc97;
+      --bad: #ff6b81;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% -10%, rgba(67, 224, 197, 0.10), transparent 40%),
+        radial-gradient(circle at 88% 8%, rgba(255, 180, 84, 0.08), transparent 38%),
+        var(--void);
+      color: var(--ink);
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 60px;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .display {
+      font-family: 'Space Grotesk', 'Pretendard Variable', sans-serif;
+    }
+
+    /* ---------- 배경 비트스트림 티커 ---------- */
+    .bitstream-ticker {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 22px;
+      overflow: hidden;
+      opacity: 0.16;
+      pointer-events: none;
+      z-index: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .bitstream-ticker span {
+      display: inline-block;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      animation: ticker 26s linear infinite;
+    }
+
+    @keyframes ticker {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    /* ---------- 상단 헤더 ---------- */
+    .wrap {
+      width: 100%;
+      max-width: 820px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin: 26px 0 14px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand .kicker {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+    }
+
+    .brand .name {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .brand .name b {
+      color: var(--cyan);
+    }
+
+    .timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--amber);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 8px 14px;
+      border-radius: 999px;
+    }
+
+    /* ---------- 압축 진행률 미터 (시그니처 요소) ---------- */
+    .meter-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+
+    .meter-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .meter-label b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .meter-track {
+      display: flex;
+      gap: 4px;
+    }
+
+    .meter-seg {
+      flex: 1;
+      height: 9px;
+      border-radius: 3px;
+      background: #1c2947;
+      border: 1px solid var(--line);
+      transition: background .35s ease, box-shadow .35s ease;
+    }
+
+    .meter-seg.filled {
+      background: linear-gradient(90deg, var(--cyan), #7ff0dd);
+      box-shadow: 0 0 10px rgba(67, 224, 197, 0.5);
+      border-color: transparent;
+    }
+
+    /* ---------- 메인 콘솔 ---------- */
+    .console {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .console-head {
+      background: var(--panel-2);
+      padding: 14px 26px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .console-head .dot-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .console-head .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .console-head .dot.on {
+      background: var(--cyan);
+    }
+
+    .console-head .id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--ink-dim);
+    }
+
+    .stage {
+      display: none;
+      padding: 34px 30px 30px;
+    }
+
+    .stage.active {
+      display: block;
+      animation: fadeIn .35s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .eyebrow-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 2.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .tag-encode {
+      color: var(--cyan);
+      background: var(--cyan-soft);
+      border: 1px solid rgba(67, 224, 197, 0.35);
+    }
+
+    .tag-decode {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border: 1px solid rgba(255, 180, 84, 0.35);
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+
+    .desc {
+      font-size: 14.5px;
+      color: var(--ink-dim);
+      line-height: 1.75;
+      margin-bottom: 22px;
+      border-left: 3px solid var(--cyan);
+      padding-left: 14px;
+    }
+
+    .desc b {
+      color: var(--ink);
+    }
+
+    .panel-box {
+      background: #0b1526;
+      border: 1px solid var(--line);
+      padding: 18px 20px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      font-size: 11.5px;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    /* 선택형 옵션 */
+    .quiz-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .opt-btn {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      padding: 14px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      font-size: 13.6px;
+      line-height: 1.55;
+      transition: all .18s ease;
+    }
+
+    .opt-btn:hover {
+      border-color: var(--cyan);
+      background: #182746;
+    }
+
+    .opt-btn:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .opt-btn.correct {
+      border-color: var(--good);
+      background: rgba(61, 220, 151, 0.12);
+    }
+
+    .opt-btn.wrong {
+      border-color: var(--bad);
+      background: rgba(255, 107, 129, 0.12);
+    }
+
+    /* 칩 (다중 선택) */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      padding: 9px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all .15s ease;
+    }
+
+    .chip:hover {
+      border-color: var(--cyan);
+    }
+
+    .chip.active {
+      background: var(--cyan-soft);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .chip.wrong-flash {
+      border-color: var(--bad);
+    }
+
+    /* 분류(토글 2지선다) 행 */
+    .classify-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      padding: 13px 16px;
+      border-radius: 9px;
+      margin-bottom: 9px;
+      flex-wrap: wrap;
+    }
+
+    .classify-row .stmt {
+      font-size: 13.3px;
+      line-height: 1.55;
+      flex: 1;
+      min-width: 210px;
+    }
+
+    .classify-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .classify-btns button {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #0b1526;
+      color: var(--ink-dim);
+      cursor: pointer;
+    }
+
+    .classify-btns button.sel-spatial.active {
+      background: var(--cyan-soft);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .classify-btns button.sel-temporal.active {
+      background: var(--amber-soft);
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    input[type=text],
+    input[type=number] {
+      flex: 1;
+      min-width: 160px;
+      background: #0b1526;
+      border: 1px solid var(--line);
+      color: var(--cyan);
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14.5px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--cyan);
+    }
+
+    label.field-label {
+      display: block;
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin: 14px 0 6px;
+    }
+
+    button.primary-btn {
+      background: var(--cyan);
+      color: #06251f;
+      border: none;
+      font-weight: 700;
+      padding: 12px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13.6px;
+      font-family: inherit;
+      transition: filter .15s ease;
+    }
+
+    button.primary-btn:hover {
+      filter: brightness(1.1);
+    }
+
+    button.primary-btn:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+
+    button.primary-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    button.ghost-btn {
+      background: transparent;
+      color: var(--ink-dim);
+      border: 1px solid var(--line);
+      padding: 11px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12.8px;
+      font-family: inherit;
+    }
+
+    button.ghost-btn:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .feedback {
+      margin-top: 13px;
+      font-size: 13.2px;
+      min-height: 20px;
+      line-height: 1.6;
+    }
+
+    .feedback.ok {
+      color: var(--good);
+    }
+
+    .feedback.err {
+      color: var(--bad);
+    }
+
+    .feedback.hint {
+      color: var(--amber);
+    }
+
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+    }
+
+    .code-table th,
+    .code-table td {
+      border: 1px solid var(--line);
+      padding: 9px;
+      text-align: center;
+    }
+
+    .code-table th {
+      background: #0b1526;
+      color: var(--violet);
+    }
+
+    .part {
+      display: none;
+    }
+
+    .part.active {
+      display: block;
+      animation: fadeIn .3s ease;
+    }
+
+    .part+.part {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .leaderboard {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .leaderboard th,
+    .leaderboard td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+    }
+
+    .leaderboard th {
+      color: var(--cyan);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-grid {
+      display: flex;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .score-cell {
+      flex: 1;
+      background: #0b1526;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 16px 10px;
+    }
+
+    .score-cell .lbl {
+      font-size: 11px;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .score-cell .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    @media (max-width:520px) {
+      .stage {
+        padding: 24px 18px 22px;
+      }
+
+      h1 {
+        font-size: 19px;
+      }
+
+      .score-grid {
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bitstream-ticker mono"><span>01001101 01011001 ENCODE→ 00101110 01110100 ←DECODE 01001101 01011001 ENCODE→
+      00101110 01110100 ←DECODE&nbsp;&nbsp;01001101 01011001 ENCODE→ 00101110 01110100 ←DECODE 01001101 01011001 ENCODE→
+      00101110 01110100 ←DECODE&nbsp;&nbsp;</span></div>
+
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="kicker">YANGJI LAB · EMERGENCY PROTOCOL</div>
+        <div class="name">양지 코덱 연구소 <b>인코딩/디코딩 미션</b></div>
+      </div>
+      <div class="timer mono" id="timer">00:00</div>
+    </div>
+
+    <div class="meter-box">
+      <div class="meter-label"><span>서버 공간 확보율 (미션 진행도)</span><b id="meter-pct">0%</b></div>
+      <div class="meter-track" id="meter-track"></div>
+    </div>
+
+    <div class="console">
+      <div class="console-head">
+        <div class="dot-row" id="dot-row"></div>
+        <div class="id mono" id="stage-id">STAGE 00 / 09</div>
+      </div>
+
+      <!-- STAGE 0 : 인트로 -->
+      <div class="stage active" data-stage="0">
+        <div class="eyebrow-row"><span class="eyebrow">Mission Briefing</span></div>
+        <h1>서버 저장 공간 초과 경보 발생!</h1>
+        <div class="desc">
+          양지 코덱 연구소의 메인 서버가 쏟아지는 데이터로 인해 포화 상태에 이르렀습니다.<br>
+          인턴 엔지니어인 당신의 임무는 원본 데이터를 <b>인코딩(Encoding)</b>하여 용량을 줄이고,
+          관제센터에서 전송되는 압축 신호를 <b>디코딩(Decoding)</b>하여 원래 상태로 정확히 복원하는 것입니다.<br>
+          지금부터 8개의 인코딩·디코딩 임무를 순서대로 해결해 서버를 구해 주세요.
+        </div>
+        <div class="input-group">
+          <input type="text" id="agent-name" placeholder="학번과 이름을 입력하세요. (예: 10101 장원영)">
+          <button class="primary-btn" id="start-btn">임무 시작 →</button>
+        </div>
+        <div class="feedback err" id="start-err"></div>
+      </div>
+
+      <!-- STAGE 1 : 인코딩 vs 디코딩 -->
+      <div class="stage" data-stage="1">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 01 · Core Concept</span><span
+            class="tag tag-encode">ENCODE</span></div>
+        <h1>인코딩과 디코딩, 그 차이는?</h1>
+        <div class="desc">
+          양지 코덱 연구소의 모든 통신은 <b>인코딩</b>과 <b>디코딩</b>을 오가며 이루어집니다.<br>
+          다음 중 <b>'데이터의 형태를 변환하여 용량을 줄이는 처리 과정(인코딩)'</b>에 대한 설명으로 옳은 것을 골라 문제를 해결하세요.
+        </div>
+        <div class="quiz-options" id="opts1">
+          <button class="opt-btn" data-v="1">① 압축된 데이터를 원래의 상태로 되돌리는 과정</button>
+          <button class="opt-btn" data-v="2">② 데이터의 형태를 변환하여 용량을 줄이는 과정</button>
+          <button class="opt-btn" data-v="3">③ 이진 코드로 압축된 데이터를 사람이 읽을 수 있는 문자열로 되돌리는 과정</button>
+        </div>
+        <div class="feedback" id="fb1"></div>
+      </div>
+
+      <!-- STAGE 2 : 필요성 -->
+      <div class="stage" data-stage="2">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 02 · Why Encode</span><span
+            class="tag tag-encode">ENCODE</span></div>
+        <h1>인코딩이 필요한 이유</h1>
+        <div class="desc">
+          서버 엔지니어들은 왜 데이터를 인코딩해서 저장하고 전송할까요?<br>
+          다음 중 데이터 압축(인코딩)의 장점으로 <b>가장 적절하지 않은 것</b>을 고르세요.
+        </div>
+        <div class="quiz-options" id="opts2">
+          <button class="opt-btn" data-v="1">① 저장 공간을 절약하고 데이터 전송 속도를 향상시킨다.</button>
+          <button class="opt-btn" data-v="2">② 클라우드·스트리밍 등 다양한 서비스의 효율을 높인다.</button>
+          <button class="opt-btn" data-v="3">③ 하드웨어 사용량과 에너지 소비를 줄여 전자 폐기물 감소에 기여한다.</button>
+          <button class="opt-btn" data-v="4">④ 데이터를 인코딩하면 원본 파일의 화질·음질이 항상 더 좋아진다.</button>
+        </div>
+        <div class="feedback" id="fb2"></div>
+      </div>
+
+      <!-- STAGE 3 : 중복성 원리 -->
+      <div class="stage" data-stage="3">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 03 · Redundancy Scan</span><span
+            class="tag tag-encode">ENCODE</span></div>
+        <h1>압축 원리: 중복성을 찾아라</h1>
+        <div class="desc">
+          인코딩의 핵심 원리는 데이터에 숨어 있는 <b>중복성(반복되는 정보)</b>을 제거하는 것입니다.
+          아래 상황이 <b>공간적 중복성</b>과 <b>시간적 중복성</b> 중 어디에 해당하는지 각각 분류하세요.
+        </div>
+        <div id="rows3">
+          <div class="classify-row" data-ans="공간">
+            <div class="stmt">구름 사진에서 하늘 위쪽에 파란색 픽셀이 계속 이어진다.</div>
+            <div class="classify-btns"><button class="sel-spatial" data-v="공간">공간적</button><button class="sel-temporal"
+                data-v="시간">시간적</button></div>
+          </div>
+          <div class="classify-row" data-ans="시간">
+            <div class="stmt">골프 스윙 영상에서 인접한 프레임마다 배경 산과 나무가 거의 같다.</div>
+            <div class="classify-btns"><button class="sel-spatial" data-v="공간">공간적</button><button class="sel-temporal"
+                data-v="시간">시간적</button></div>
+          </div>
+          <div class="classify-row" data-ans="공간">
+            <div class="stmt">체크무늬 원단 이미지에서 같은 색 패턴이 반복된다.</div>
+            <div class="classify-btns"><button class="sel-spatial" data-v="공간">공간적</button><button class="sel-temporal"
+                data-v="시간">시간적</button></div>
+          </div>
+          <div class="classify-row" data-ans="시간">
+            <div class="stmt">애니메이션에서 이전 프레임과 다음 프레임의 캐릭터 위치 차이가 거의 없다.</div>
+            <div class="classify-btns"><button class="sel-spatial" data-v="공간">공간적</button><button class="sel-temporal"
+                data-v="시간">시간적</button></div>
+          </div>
+        </div>
+        <button class="primary-btn" onclick="checkStage3()" style="margin-top:6px;">분류 결과 제출</button>
+        <div class="feedback" id="fb3"></div>
+      </div>
+
+      <!-- STAGE 4 : RLE 인코딩 (응용) -->
+      <div class="stage" data-stage="4">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 04 · Run-Length Encoding</span><span
+            class="tag tag-encode">ENCODE</span></div>
+        <h1>반복 길이 압축으로 인코딩하기</h1>
+        <div class="desc">
+          연속으로 반복되는 문자를 <b>'문자 + 반복 횟수'</b>로 표현해 인코딩하는 방식을 반복 길이 압축(RLE)이라고 합니다.<br>
+          관측 위성이 보내온 신호 색상 데이터 <b class="mono">AAOOOBBBBBBGGGGOOCCC</b> (총 20글자)를 RLE 방식으로 인코딩하세요.
+        </div>
+        <div class="panel-box">
+          <div class="panel-title">미션 1 · RLE 인코딩 결과</div>
+          <div class="input-group"><input type="text" id="ans4-1" placeholder="예: A2O3B6..."></div>
+          <label class="field-label">미션 2 · 압축률 (압축률 = 원본 크기 ÷ 압축된 크기, 소수 첫째 자리까지)</label>
+          <div class="input-group"><input type="number" step="0.1" id="ans4-2" placeholder="예: 1.7"></div>
+        </div>
+        <button class="primary-btn" onclick="checkStage4()">인코딩 결과 제출</button>
+        <button class="ghost-btn" onclick="useHint(4)">💡 힌트 보기</button>
+        <div class="feedback" id="fb4"></div>
+      </div>
+
+      <!-- STAGE 5 : RLE 디코딩 (신규) -->
+      <div class="stage" data-stage="5">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 05 · RLE Decoding</span><span
+            class="tag tag-decode">DECODE</span></div>
+        <h1>반복 길이 압축 디코딩</h1>
+        <div class="desc">
+          이번엔 관제센터에서 압축된 신호가 도착했습니다. RLE 방식으로 인코딩된 신호를 <b>디코딩(복원)</b>해
+          원래의 색상 데이터를 되살려 주세요.<br>
+          수신 신호: <b class="mono" style="color:var(--amber)">T4U3V6T2U5</b>
+        </div>
+        <div class="panel-box">
+          <div class="panel-title">디코딩(복원)된 원본 문자열을 입력하세요</div>
+          <div class="input-group"><input type="text" id="ans5" placeholder="예: TTTT..."></div>
+        </div>
+        <button class="primary-btn" onclick="checkStage5()">디코딩 결과 제출</button>
+        <div class="feedback" id="fb5"></div>
+      </div>
+
+      <!-- STAGE 6 : 허프만 -->
+      <div class="stage" data-stage="6">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 06 · Huffman Protocol</span><span
+            class="tag tag-encode">ENCODE</span><span class="tag tag-decode">DECODE</span></div>
+        <h1>허프만 압축: 트리 구성부터 디코딩까지</h1>
+        <div class="desc">
+          허프만 압축은 문자의 <b>등장 빈도수</b>를 이용합니다. 빈도수가 <b>높은</b> 문자에는 <b>짧은</b> 이진 코드를,
+          빈도수가 <b>낮은</b> 문자에는 <b>긴</b> 이진 코드를 부여해 전체 비트 수를 줄이는 인코딩 방식입니다.
+        </div>
+
+        <!-- Part A -->
+        <div class="part active" id="p6a">
+          <div class="panel-box">
+            <div class="panel-title">미션 1 · 트리 구성 — 문자열 "RABRBGRARRARG" (R6, A3, B2, G2)</div>
+            <div style="font-size:13.3px; color:var(--ink-dim); margin-bottom:12px;">허프만 트리를 만들 때, 빈도수가 가장 낮은 문자 <b
+                style="color:var(--ink)">두 개</b>부터 먼저 연결합니다. 가장 먼저 합쳐질 문자 두 개를 고르세요.</div>
+            <div class="chip-row" id="chips6a">
+              <div class="chip" data-v="R">R (빈도 6)</div>
+              <div class="chip" data-v="A">A (빈도 3)</div>
+              <div class="chip" data-v="B">B (빈도 2)</div>
+              <div class="chip" data-v="G">G (빈도 2)</div>
+            </div>
+          </div>
+          <button class="primary-btn" onclick="checkStage6a()">트리 구성 확인</button>
+          <div class="feedback" id="fb6a"></div>
+        </div>
+
+        <!-- Part B -->
+        <div class="part" id="p6b">
+          <div class="panel-box">
+            <div class="panel-title">미션 2 · 비트스트림 디코딩</div>
+            <table class="code-table">
+              <tr>
+                <th>문자</th>
+                <td>R</td>
+                <td>A</td>
+                <td>G</td>
+                <td>B</td>
+              </tr>
+              <tr>
+                <th>이진 코드</th>
+                <td>1</td>
+                <td>01</td>
+                <td>001</td>
+                <td>000</td>
+              </tr>
+            </table>
+            <div style="font-size:13.3px; color:var(--ink-dim); margin:12px 0 8px;">관제센터에서 수신한 인코딩 비트스트림 <b class="mono"
+                style="color:var(--amber)">1010001000</b>을 위 코드표로 <b style="color:var(--ink)">디코딩(복원)</b>하세요.</div>
+            <div class="input-group"><input type="text" id="ans6b" placeholder="디코딩된 문자열 입력 (대문자)"></div>
+          </div>
+          <button class="primary-btn" onclick="checkStage6b()">디코딩 제출</button>
+          <button class="ghost-btn" onclick="useHint('6b')">💡 힌트 보기</button>
+          <div class="feedback" id="fb6b"></div>
+        </div>
+
+        <!-- Part C -->
+        <div class="part" id="p6c">
+          <div class="panel-box">
+            <div class="panel-title">미션 3 · 압축 효과 계산</div>
+            <table class="code-table">
+              <tr>
+                <th>문자</th>
+                <td>R</td>
+                <td>A</td>
+                <td>G</td>
+                <td>B</td>
+              </tr>
+              <tr>
+                <th>이진 코드</th>
+                <td>1</td>
+                <td>01</td>
+                <td>001</td>
+                <td>000</td>
+              </tr>
+            </table>
+            <div style="font-size:13.3px; color:var(--ink-dim); margin:12px 0 8px;">
+              원본 문자열 <b class="mono">RABRBGRARRARG</b>(13글자)을 문자당 1바이트(8비트)로 저장하면 104비트가 필요합니다.
+              위 허프만 코드표를 적용해 전체 문자열을 인코딩하면 총 몇 비트가 될까요?
+            </div>
+            <div class="input-group"><input type="number" id="ans6c" placeholder="총 비트 수 입력"></div>
+          </div>
+          <button class="primary-btn" onclick="checkStage6c()">최종 인코딩 완료</button>
+          <div class="feedback" id="fb6c"></div>
+        </div>
+      </div>
+
+      <!-- STAGE 7 : 허프만 실전 연습 (신규) -->
+      <div class="stage" data-stage="7">
+        <div class="eyebrow-row"><span class="eyebrow">Mission 07 · Huffman Field Test</span><span
+            class="tag tag-encode">ENCODE</span><span class="tag tag-decode">DECODE</span></div>
+        <h1>허프만 실전: 새로운 신호 코덱</h1>
+        <div class="desc">
+          양지 코덱 연구소가 새로 도입한 신호 코덱입니다.<br>
+          아래 빈도수·코드표를 보고 두 가지 미션을 해결해 인코딩·디코딩 실력을 증명한 후,<br>
+          연구소의 서버를 구하세요!
+        </div>
+        <div class="panel-box">
+          <div class="panel-title">신규 코덱 — 문자별 빈도수와 허프만 코드</div>
+          <table class="code-table">
+            <tr>
+              <th>문자</th>
+              <td>M</td>
+              <td>N</td>
+              <td>O</td>
+              <td>P</td>
+            </tr>
+            <tr>
+              <th>빈도수</th>
+              <td>8</td>
+              <td>5</td>
+              <td>3</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <th>이진 코드</th>
+              <td>0</td>
+              <td>10</td>
+              <td>110</td>
+              <td>111</td>
+            </tr>
+          </table>
+        </div>
+        <div class="panel-box">
+          <div class="panel-title">미션 1 · 디코딩 — 수신 비트스트림 <span class="mono"
+              style="color:var(--amber)">010110111010</span></div>
+          <div class="input-group"><input type="text" id="ans7-1" placeholder="디코딩된 문자열 입력 (대문자)"></div>
+          <label class="field-label">미션 2 · 압축 효과 계산 — 원본 문자열 <b class="mono">MMMMMMMMNNNNNOOOPP</b>(18글자)을 위 코드표로 인코딩하면
+            총 몇 비트가 될까요?</label>
+          <div class="input-group"><input type="number" id="ans7-2" placeholder="총 비트 수 입력"></div>
+        </div>
+        <button class="primary-btn" onclick="checkStage7()">최종 인코딩 제출</button>
+        <div class="feedback" id="fb7"></div>
+      </div>
+
+      <!-- STAGE 8 : 최종 보스 -->
+      <div class="stage" data-stage="8">
+        <div class="eyebrow-row"><span class="eyebrow">Final Mission · Signal Transmission</span></div>
+        <h1>관제센터 최종 교신</h1>
+        <div class="desc">
+          마지막 관문입니다. 네 가지 질문에 모두 정확히 응답해 관제센터로 <b>인코딩된 최종 신호</b>를 전송하세요.
+        </div>
+
+        <div class="part active" id="p8a">
+          <div class="panel-title">Q1. 손실 압축(Lossy Compression)에 대한 설명으로 옳은 것은?</div>
+          <div class="quiz-options" id="opts8a">
+            <button class="opt-btn" data-v="1">① 압축 후 디코딩하면 원본 데이터가 100% 그대로 복원된다.</button>
+            <button class="opt-btn" data-v="2">② 압축 과정에서 데이터 일부가 삭제되어 디코딩해도 원본과 완전히 같지 않다.</button>
+            <button class="opt-btn" data-v="3">③ ZIP, BMP, PNG 파일 등이 대표적인 손실 압축 형태에 해당한다.</button>
+          </div>
+          <div class="feedback" id="fb8a"></div>
+        </div>
+
+        <div class="part" id="p8b">
+          <div class="panel-title">Q2. 우리가 대용량 디지털 데이터를 '압축(인코딩)'하여 사용하는 가장 주요한 목적은 무엇인가요?</div>
+          <div class="quiz-options" id="opts8b">
+            <button class="opt-btn" data-v="1">① 저장 공간을 효율적으로 활용하고 데이터 전송 시간을 줄이기 위해</button>
+            <button class="opt-btn" data-v="2">② 파일의 해상도나 화질을 원래보다 높이기 위해</button>
+            <button class="opt-btn" data-v="3">③ 컴퓨터의 하드웨어 부품을 추가로 증설하기 위해</button>
+          </div>
+          <div class="feedback" id="fb8b"></div>
+        </div>
+
+        <div class="part" id="p8c">
+          <div class="panel-title">Q3. RLE 인코딩 결과 압축률이 2.5였다면, 원본 데이터는 압축된 데이터보다 약 몇 배 더 큰가요?</div>
+          <div class="input-group"><input type="number" step="0.1" id="ans8c" placeholder="소수점 첫째자리까지 작성"></div>
+          <button class="primary-btn" onclick="checkStage8c()" style="margin-top:10px;">제출</button>
+          <div class="feedback" id="fb8c"></div>
+        </div>
+
+        <div class="part" id="p8d">
+          <div class="panel-title">Q4. 문자의 등장 빈도수에 따라 짧거나 긴 이진 코드를 부여하는 압축 방식의 이름은?</div>
+          <div class="input-group"><input type="text" id="ans8d" placeholder="압축 방식 이름 입력"></div>
+          <button class="primary-btn" onclick="checkStage8d()" style="margin-top:10px;">신호 전송</button>
+          <div class="feedback" id="fb8d"></div>
+        </div>
+      </div>
+
+      <!-- STAGE 9 : 결과 -->
+      <div class="stage" data-stage="9">
+        <div class="eyebrow-row"><span class="eyebrow">Mission Complete</span></div>
+        <h1>전송 완료 — 서버 압축률 최적화 성공!</h1>
+        <div class="desc" id="result-desc">축하합니다! 인코딩과 디코딩 과정을 완벽히 이해하고 양지 코덱 연구소의 서버를 구했습니다.</div>
+        <div class="score-grid">
+          <div class="score-cell">
+            <div class="lbl">소요 시간</div>
+            <div class="val mono" id="final-time">00:00</div>
+          </div>
+          <div class="score-cell">
+            <div class="lbl">최종 점수</div>
+            <div class="val mono" id="final-score" style="color:var(--good)">0</div>
+          </div>
+        </div>
+        <div class="eyebrow" style="margin-top:24px; display:block;">서버 최적화 랭킹 (TOP 10)</div>
+        <div id="lb-wrap">
+          <div style="color:var(--ink-dim); text-align:center; padding:14px;">기록 불러오는 중...</div>
+        </div>
+        <button class="primary-btn" onclick="resetGame()" style="margin-top:16px; width:100%;">다시 도전하기</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ---------------- 상태 ---------------- */
+    const TOTAL_STAGES = 8; // 미션 1~8
+    const RESULT_STAGE = 9;
+    const STAGE_POINTS = { 1: 100, 2: 100, 3: 100, 4: 150, 5: 100, '6a': 70, '6b': 70, '6c': 70, 7: 180, '8a': 50, '8b': 50, '8c': 50, '8d': 50 };
+    let agentName = '';
+    let seconds = 0, timerInt = null;
+    let score = 0;
+    let pointsLeft = {}; Object.keys(STAGE_POINTS).forEach(k => pointsLeft[k] = STAGE_POINTS[k]);
+    let hintTaken = {};
+    let solved = {};
+
+    /* ---------------- 진행률 미터 ---------------- */
+    const meterTrack = document.getElementById('meter-track');
+    for (let i = 0; i < 10; i++) { const seg = document.createElement('div'); seg.className = 'meter-seg'; meterTrack.appendChild(seg); }
+    const dotRow = document.getElementById('dot-row');
+    for (let i = 1; i <= TOTAL_STAGES; i++) { const d = document.createElement('div'); d.className = 'dot'; d.id = 'dot-' + i; dotRow.appendChild(d); }
+
+    function updateMeter(stage) {
+      const doneStages = Math.max(0, Math.min(stage - 1, TOTAL_STAGES));
+      const pct = stage >= RESULT_STAGE ? 100 : Math.round(doneStages / TOTAL_STAGES * 100);
+      document.getElementById('meter-pct').textContent = pct + '%';
+      const segs = document.querySelectorAll('.meter-seg');
+      const filled = Math.round(pct / 10);
+      segs.forEach((s, i) => s.classList.toggle('filled', i < filled));
+      for (let i = 1; i <= TOTAL_STAGES; i++) {
+        document.getElementById('dot-' + i).classList.toggle('on', i < stage || stage >= RESULT_STAGE);
+      }
+      document.getElementById('stage-id').textContent = 'STAGE ' + String(Math.min(stage, RESULT_STAGE)).padStart(2, '0') + ' / 0' + RESULT_STAGE;
+    }
+
+    /* ---------------- 타이머 ---------------- */
+    function startTimer() {
+      timerInt = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        document.getElementById('timer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      const val = document.getElementById('agent-name').value.trim();
+      if (!val) { document.getElementById('start-err').textContent = '학번과 이름을 입력해 주세요.'; return; }
+      agentName = val;
+      document.getElementById('start-err').textContent = '';
+      startTimer();
+      goStage(1);
+    });
+    document.getElementById('agent-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('start-btn').click(); });
+
+    function goStage(n) {
+      document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+      document.querySelector(`.stage[data-stage="${n}"]`).classList.add('active');
+      updateMeter(n);
+      if (n === RESULT_STAGE) finishGame();
+    }
+
+    function markSuccess(fbEl, stageKey, msg) {
+      fbEl.textContent = '✔ ' + msg;
+      fbEl.className = 'feedback ok';
+      if (!solved[stageKey]) { score += pointsLeft[stageKey]; solved[stageKey] = true; }
+    }
+    function markFail(fbEl, stageKey, msg) {
+      fbEl.textContent = '✘ ' + msg;
+      fbEl.className = 'feedback err';
+      pointsLeft[stageKey] = Math.max(0, pointsLeft[stageKey] - 20);
+    }
+    function useHint(stageKey) {
+      if (!hintTaken[stageKey]) { hintTaken[stageKey] = true; pointsLeft[stageKey] = Math.max(0, pointsLeft[stageKey] - 30); }
+      const hints = {
+        4: '연속되는 문자의 개수를 순서대로 세어 "문자+횟수"로 이어 적어보세요. A가 2번, 그다음 O가 3번…',
+        '6b': '코드표에서 앞자리부터 하나씩 맞춰보세요. "1"이면 바로 R, 아니면 다음 자리까지 이어 붙여 비교하세요.'
+      };
+      const fbId = stageKey === 4 ? 'fb4' : 'fb6b';
+      const fb = document.getElementById(fbId);
+      fb.textContent = '💡 ' + hints[stageKey];
+      fb.className = 'feedback hint';
+    }
+
+    /* ---------- 옵션 버튼 공통 처리기 ---------- */
+    function bindOptions(containerId, correctVal, onCorrect, stageKey, fbId) {
+      const wrap = document.getElementById(containerId);
+      wrap.querySelectorAll('.opt-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fb = document.getElementById(fbId);
+          const v = btn.dataset.v;
+          if (v === correctVal) {
+            wrap.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('wrong'));
+            btn.classList.add('correct');
+            markSuccess(fb, stageKey, onCorrect.msg);
+            setTimeout(onCorrect.next, 900);
+          } else {
+            btn.classList.add('wrong');
+            markFail(fb, stageKey, onCorrect.failMsg);
+          }
+        });
+      });
+    }
+
+    bindOptions('opts1', '2', { msg: '정답입니다! 데이터 형태를 변환해 용량을 줄이는 처리가 바로 인코딩입니다.', failMsg: '①·③은 압축된 데이터를 되돌리는 디코딩에 대한 설명입니다.', next: () => goStage(2) }, 1, 'fb1');
+    bindOptions('opts2', '4', { msg: '정답입니다! 인코딩은 압축 과정에서 손실이 발생할 수 있어 화질·음질이 항상 좋아지는 것은 아닙니다.', failMsg: '인코딩의 실제 장점(저장 공간, 전송 속도, 에너지 효율)을 다시 살펴보세요.', next: () => goStage(3) }, 2, 'fb2');
+    bindOptions('opts8a', '2', { msg: '정답입니다! 손실 압축은 디코딩해도 원본과 완전히 같지 않습니다.', failMsg: '①은 비손실 압축, ③은 압축률과 무관한 설명입니다.', next: () => revealPart('p8a', 'p8b') }, '8a', 'fb8a');
+    bindOptions('opts8b', '1', { msg: '정답입니다! 압축(인코딩)의 가장 주요한 목적은 저장 공간을 절약하고 전송 시간을 줄이는 것입니다.', failMsg: '②·③은 압축의 목적과 거리가 먼 설명입니다. 저장 공간과 전송 효율을 떠올려 보세요.', next: () => revealPart('p8b', 'p8c') }, '8b', 'fb8b');
+
+    /* ---------- STAGE 3 : 중복성 분류 ---------- */
+    document.querySelectorAll('.classify-row').forEach(row => {
+      row.querySelectorAll('.classify-btns button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          row.querySelectorAll('.classify-btns button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          row.dataset.pick = btn.dataset.v;
+        });
+      });
+    });
+    function checkStage3() {
+      const fb = document.getElementById('fb3');
+      const rows = document.querySelectorAll('.classify-row');
+      let allAnswered = true, allCorrect = true;
+      rows.forEach(row => {
+        if (!row.dataset.pick) { allAnswered = false; }
+        else if (row.dataset.pick !== row.dataset.ans) { allCorrect = false; }
+      });
+      if (!allAnswered) { markFail(fb, 3, '아직 분류하지 않은 항목이 있습니다. 4개 모두 선택해 주세요.'); pointsLeft[3] = Math.min(pointsLeft[3] + 20, STAGE_POINTS[3]); return; }
+      if (allCorrect) {
+        markSuccess(fb, 3, '정확합니다! 같은 화면 안의 반복은 공간적 중복성, 프레임 사이의 반복은 시간적 중복성입니다.');
+        setTimeout(() => goStage(4), 900);
+      } else {
+        markFail(fb, 3, '일부 분류가 틀렸습니다. 한 화면 안의 반복인지, 시간에 따른 반복인지 다시 확인해 보세요.');
+      }
+    }
+
+    /* ---------- STAGE 4 : RLE 인코딩 ---------- */
+    function checkStage4() {
+      const rle = document.getElementById('ans4-1').value.trim().toUpperCase().replace(/\s+/g, '');
+      const ratio = parseFloat(document.getElementById('ans4-2').value);
+      const fb = document.getElementById('fb4');
+      if (rle === 'A2O3B6G4O2C3' && Math.abs(ratio - 1.7) < 0.05) {
+        markSuccess(fb, 4, 'A2O3B6G4O2C3(12글자)로 인코딩 성공! 압축률 20÷12 ≈ 1.7 입니다.');
+        setTimeout(() => goStage(5), 900);
+      } else {
+        markFail(fb, 4, 'RLE 표기 형식(예: A2O3…)과 압축률(원본 크기÷압축된 크기)을 다시 확인해 보세요.');
+      }
+    }
+
+    /* ---------- STAGE 5 : RLE 디코딩 ---------- */
+    function checkStage5() {
+      const val = document.getElementById('ans5').value.trim().toUpperCase().replace(/\s+/g, '');
+      const fb = document.getElementById('fb5');
+      if (val === 'TTTTUUUVVVVVVTTUUUUU') {
+        markSuccess(fb, 5, '정확히 디코딩되었습니다! T4→TTTT, U3→UUU, V6→VVVVVV, T2→TT, U5→UUUUU');
+        setTimeout(() => goStage(6), 900);
+      } else {
+        markFail(fb, 5, '숫자만큼 문자를 반복해서 순서대로 이어 붙여 보세요. T4는 T를 4번, U3는 U를 3번…');
+      }
+    }
+
+    /* ---------- STAGE 6 ---------- */
+    function revealPart(hideId, showId) {
+      document.getElementById(hideId).classList.remove('active');
+      document.getElementById(showId).classList.add('active');
+    }
+    document.querySelectorAll('#chips6a .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        const active = document.querySelectorAll('#chips6a .chip.active');
+        if (!c.classList.contains('active') && active.length >= 2) return;
+        c.classList.toggle('active');
+      });
+    });
+    function checkStage6a() {
+      const fb = document.getElementById('fb6a');
+      const sel = new Set([...document.querySelectorAll('#chips6a .chip.active')].map(c => c.dataset.v));
+      if (sel.size === 2 && sel.has('B') && sel.has('G')) {
+        markSuccess(fb, '6a', '정답입니다! 빈도수가 가장 낮은 B(2)와 G(2)를 먼저 연결해 새 노드(빈도 4)를 만듭니다.');
+        setTimeout(() => revealPart('p6a', 'p6b'), 900);
+      } else {
+        markFail(fb, '6a', '빈도수가 가장 작은 두 문자를 먼저 합칩니다. 표의 빈도수를 다시 확인하세요.');
+      }
+    }
+    function checkStage6b() {
+      const val = document.getElementById('ans6b').value.trim().toUpperCase();
+      const fb = document.getElementById('fb6b');
+      if (val === 'RABRB') {
+        markSuccess(fb, '6b', '정확히 디코딩되었습니다! 1→R, 01→A, 000→B, 1→R, 000→B ⇒ RABRB');
+        setTimeout(() => revealPart('p6b', 'p6c'), 900);
+      } else {
+        markFail(fb, '6b', '앞자리부터 코드표와 하나씩 대조해 보세요. 1은 R, 01은 A, 001은 G, 000은 B입니다.');
+      }
+    }
+    function checkStage6c() {
+      const val = parseInt(document.getElementById('ans6c').value, 10);
+      const fb = document.getElementById('fb6c');
+      if (val === 24) {
+        markSuccess(fb, '6c', '정답! R6×1비트 + A3×2비트 + G2×3비트 + B2×3비트 = 24비트. 104비트→24비트로 압축되었습니다.');
+        setTimeout(() => goStage(7), 900);
+      } else {
+        markFail(fb, '6c', '문자별 (빈도수 × 코드 길이)를 모두 더해보세요. R=1비트, A=2비트, G=3비트, B=3비트입니다.');
+      }
+    }
+
+    /* ---------- STAGE 7 : 허프만 실전 연습 ---------- */
+    function checkStage7() {
+      const decoded = document.getElementById('ans7-1').value.trim().toUpperCase();
+      const bits = parseInt(document.getElementById('ans7-2').value, 10);
+      const fb = document.getElementById('fb7');
+      if (decoded === 'MNOPMN' && bits === 33) {
+        markSuccess(fb, 7, '완벽합니다! 0→M, 10→N, 110→O, 111→P, 0→M, 10→N ⇒ MNOPMN. 그리고 M8×1+N5×2+O3×3+P2×3 = 33비트(144비트→33비트)입니다.');
+        setTimeout(() => goStage(8), 1000);
+      } else {
+        markFail(fb, 7, '앞자리부터 코드표와 대조해 디코딩하고, 문자별 (빈도수×코드 길이)를 모두 더해 비트 수를 계산해 보세요.');
+      }
+    }
+
+    /* ---------- STAGE 8 ---------- */
+    function checkStage8c() {
+      const v = parseFloat(document.getElementById('ans8c').value);
+      const fb = document.getElementById('fb8c');
+      if (Math.abs(v - 2.5) < 0.05) {
+        markSuccess(fb, '8c', '정답입니다! 압축률 2.5는 원본이 압축본보다 약 2.5배 크다는 의미입니다.');
+        setTimeout(() => revealPart('p8c', 'p8d'), 900);
+      } else {
+        markFail(fb, '8c', '압축률 = 원본 크기 ÷ 압축된 크기 라는 정의를 떠올려 보세요.');
+      }
+    }
+    function checkStage8d() {
+      const v = document.getElementById('ans8d').value.trim();
+      const fb = document.getElementById('fb8d');
+      if (v.includes('허프만')) {
+        markSuccess(fb, '8d', '정답입니다! 허프만 압축이 최종 신호를 관제센터로 전송합니다. 신호 인코딩 완료!');
+        setTimeout(() => goStage(9), 1000);
+      } else {
+        markFail(fb, '8d', '빈도수 높은 문자 = 짧은 코드, 낮은 문자 = 긴 코드를 부여하는 방식의 이름을 떠올려 보세요.');
+      }
+    }
+
+    /* ---------------- 결과 & 리더보드 ---------------- */
+    function finishGame() {
+      clearInterval(timerInt);
+      const timeStr = document.getElementById('timer').textContent;
+      document.getElementById('final-time').textContent = timeStr;
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('result-desc').textContent = `엔지니어 "${agentName}" 님, 인코딩·디코딩 임무를 모두 완수해 코덱 연구소 서버 용량을 성공적으로 확보했습니다.`;
+      saveRecord(agentName, score, seconds);
+      loadLeaderboard();
+    }
+    function saveRecord(name, score, secs) {
+      try {
+        const records = JSON.parse(localStorage.getItem('codec_lab_leaderboard') || '[]');
+        records.push({ name, score, secs, ts: Date.now() });
+        localStorage.setItem('codec_lab_leaderboard', JSON.stringify(records));
+      } catch (e) { console.error(e); }
+    }
+    function loadLeaderboard() {
+      const wrap = document.getElementById('lb-wrap');
+      try {
+        const records = JSON.parse(localStorage.getItem('codec_lab_leaderboard') || '[]');
+        if (records.length === 0) { wrap.innerHTML = '<div style="color:var(--ink-dim); text-align:center; padding:14px;">첫 번째 도전자입니다!</div>'; return; }
+        records.sort((a, b) => b.score - a.score || a.secs - b.secs);
+        const top = records.slice(0, 10);
+        let html = '<table class="leaderboard"><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>시간</th></tr></thead><tbody>';
+        top.forEach((e, i) => {
+          const isMe = e.name === agentName && e.score === score;
+          const m = String(Math.floor(e.secs / 60)).padStart(2, '0'), s = String(e.secs % 60).padStart(2, '0');
+          html += `<tr style="${isMe ? 'color:var(--good); font-weight:700;' : ''}"><td>${i + 1}</td><td>${escapeHtml(e.name)}</td><td>${e.score}</td><td>${m}:${s}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+      } catch (e) { wrap.innerHTML = '<div style="color:var(--bad);">리더보드를 불러올 수 없습니다.</div>'; }
+    }
+    function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+    function resetGame() {
+      clearInterval(timerInt);
+      seconds = 0; score = 0;
+      pointsLeft = {}; Object.keys(STAGE_POINTS).forEach(k => pointsLeft[k] = STAGE_POINTS[k]);
+      hintTaken = {}; solved = {};
+      document.getElementById('timer').textContent = '00:00';
+      document.getElementById('agent-name').value = '';
+      ['ans4-1', 'ans4-2', 'ans5', 'ans6b', 'ans6c', 'ans7-1', 'ans7-2', 'ans8c', 'ans8d'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      ['fb1', 'fb2', 'fb3', 'fb4', 'fb5', 'fb6a', 'fb6b', 'fb6c', 'fb7', 'fb8a', 'fb8b', 'fb8c', 'fb8d'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = ''; el.className = 'feedback'; } });
+      document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('correct', 'wrong'));
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.classify-row').forEach(r => { delete r.dataset.pick; r.querySelectorAll('button').forEach(b => b.classList.remove('active')); });
+      document.getElementById('p6a').classList.add('active'); document.getElementById('p6b').classList.remove('active'); document.getElementById('p6c').classList.remove('active');
+      document.getElementById('p8a').classList.add('active'); document.getElementById('p8b').classList.remove('active'); document.getElementById('p8c').classList.remove('active'); document.getElementById('p8d').classList.remove('active');
+      goStage(0);
+    }
+
+    updateMeter(0);
+  </script>
+
+</body>
+
+</html>
