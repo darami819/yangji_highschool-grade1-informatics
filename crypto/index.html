@@ -569,8 +569,8 @@
             <div class="eyebrow">STAGE 2 · 치환형 암호 (카이사르)</div>
             <h1>2라운드 — 밀려버린 알파벳</h1>
             <div class="narrative">
-                알파벳을 오른쪽으로 <b style="color:var(--brass)">2글자씩</b> 밀어서 암호화된 암호문이다.<br>
-                슬라이더를 이용해 평문을 해독해라.
+                알파벳을 왼쪽으로 <b style="color:var(--brass)">2글자씩</b> 밀어서 암호화된 암호문이다.<br>
+                평문을 해독해라.
             </div>
             <div class="doc-card">
                 <div class="cipher-text" id="c2-cipher">AMKNSRCP</div>
@@ -825,7 +825,7 @@
            ============================================================ */
         const CONFIG = {
             s1Answer: '복호화',
-            s2Cipher: 'EQORWVGT',
+            s2Cipher: 'AMKNSRCP',
             s2Answer: 'COMPUTER',
             s3Answer: 'OUTPUT',
             s4Answer: '3',
@@ -857,7 +857,7 @@
         function shiftDecode(text, shift) {
             return text.split('').map(ch => {
                 if (!/[A-Z]/.test(ch)) return ch;
-                const idx = (ALPHA.indexOf(ch) - shift + 26) % 26;
+                const idx = (ALPHA.indexOf(ch) + shift + 26) % 26;
                 return ALPHA[idx];
             }).join('');
         }
