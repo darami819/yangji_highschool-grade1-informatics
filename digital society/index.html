@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>디지털 디스토피아 방어전 - 양지고 정보 수업</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --accent-blue: #2563eb;
+            --accent-red: #dc2626;
+            --accent-green: #16a34a;
+            --text-main: #1f2937;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            margin: 0 0 6px 0;
+            color: var(--accent-blue);
+        }
+
+        .student-info-tag {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .round-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #4338ca;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .gauges-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .gauge-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .gauge-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .gauge-bar-bg {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .gauge-bar-fill {
+            height: 100%;
+            width: 50%;
+            background: var(--accent-blue);
+            transition: width 0.4s ease, background-color 0.4s ease;
+        }
+
+        .card {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .card-topic {
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: #eff6ff;
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .card-question {
+            font-size: 1.1rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 16px;
+            word-break: keep-all;
+        }
+
+        /* 교과서 분석 피드백 박스 */
+        .analysis-box {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.8rem;
+            text-align: left;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        .analysis-title { font-weight: 700; color: #334155; margin-bottom: 4px; }
+        .text-pos { color: #16a34a; font-weight: 600; }
+        .text-neg { color: #dc2626; font-weight: 600; }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-approve { background: var(--accent-blue); color: white; }
+        .btn-reject { background: #6b7280; color: white; }
+        .btn-next { background: var(--accent-blue); color: white; width: 100%; padding: 12px; font-size: 1rem; }
+
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 12px; color: var(--accent-blue); }
+        .modal-desc { font-size: 0.9rem; line-height: 1.5; color: #4b5563; margin-bottom: 15px; text-align: left; word-break: keep-all; }
+
+        .story-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--accent-blue);
+            padding: 14px;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #1e3a8a;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label { font-size: 0.85rem; font-weight: 700; color: #374151; }
+        .input-group input { padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; outline: none; }
+        .input-group input:focus { border-color: var(--accent-blue); }
+
+        .concept-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .concept-title { font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 4px; }
+        .concept-list { font-size: 0.8rem; color: #475569; margin: 0; padding-left: 18px; }
+
+        /* 활동지 및 성향 스타일 추가 */
+        .type-badge-box {
+            background: #f0f9ff;
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .type-badge-title {
+            font-size: 0.8rem;
+            color: #0369a1;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .type-badge-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--accent-blue);
+            margin-bottom: 6px;
+        }
+
+        .type-badge-notice {
+            font-size: 0.8rem;
+            color: #0369a1;
+            background: #e0f2fe;
+            padding: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .report-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: left;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="header">
+        <h1>디지털 디스토피아 방어전</h1>
+        <div id="student-display" class="student-info-tag">학번 이름 미입력</div>
+        <div class="round-badge"><span id="round-num">1</span> / 10 라운드</div>
+    </div>
+
+    <!-- 4대 게이지 -->
+    <div class="gauges-grid">
+        <div class="gauge-card">
+            <div class="gauge-label">
+                <span>정보 접근성 &amp; 데이터 효율</span>
+                <span id="v1-val">50%</span>
+            </div>
+            <div class="gauge-bar-bg"><div id="v1-bar" class="gauge-bar-fill"></div></div>
+        </div>
+        <div class="gauge-card">
+            <div class="gauge-label">
+                <span>콘텐츠 &amp; 사회적 연결</span>
+                <span id="v2-val">50%</span>
+            </div>
+            <div class="gauge-bar-bg"><div id="v2-bar" class="gauge-bar-fill"></div></div>
+        </div>
+        <div class="gauge-card">
+            <div class="gauge-label">
+                <span>디지털 경제 &amp; 포용성</span>
+                <span id="v3-val">50%</span>
+            </div>
+            <div class="gauge-bar-bg"><div id="v3-bar" class="gauge-bar-fill"></div></div>
+        </div>
+        <div class="gauge-card">
+            <div class="gauge-label">
+                <span>데이터 윤리 &amp; 보안</span>
+                <span id="v4-val">50%</span>
+            </div>
+            <div class="gauge-bar-bg"><div id="v4-bar" class="gauge-bar-fill"></div></div>
+        </div>
+    </div>
+
+    <!-- 핵심 카드 영역 -->
+    <div class="card">
+        <div id="card-topic" class="card-topic">교과서 분야</div>
+        <div id="card-question" class="card-question">질문 내용</div>
+        
+        <!-- 교과서 p.214~215 분석 피드백 -->
+        <div class="analysis-box">
+            <div class="analysis-title">📖 교과서 p.214~215 분야별 영향 분석:</div>
+            <div id="pos-effect" class="text-pos">· 긍정적 효과: -</div>
+            <div id="neg-effect" class="text-neg">· 부작용 및 위험: -</div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-approve" onclick="makeDecision(true)">[승인] 정책 시행</button>
+        <button class="btn btn-reject" onclick="makeDecision(false)">[거절] 정책 보류</button>
+    </div>
+</div>
+
+<!-- STEP 1: 학번/이름 입력 -->
+<div id="login-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">🎮 디지털 디스토피아 방어전</div>
+        <div style="font-size: 0.9rem; color: #6b7280; margin-bottom: 20px;">양지고 정보 수업: 학번과 이름을 입력해 주세요.</div>
+        
+        <div class="input-group">
+            <label for="student-id">학번 (예: 10101)</label>
+            <input type="text" id="student-id" placeholder="학번을 입력하세요">
+        </div>
+        <div class="input-group">
+            <label for="student-name">이름</label>
+            <input type="text" id="student-name" placeholder="이름을 입력하세요">
+        </div>
+
+        <button class="btn btn-next" onclick="submitStudentInfo()">다음 단계로 ➔</button>
+    </div>
+</div>
+
+<!-- STEP 2: 스토리 안내 -->
+<div id="story-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-title">🚨 게임 소개: 당신의 미션</div>
+        
+        <div class="story-box">
+            <b>"당신은 디지털 전환을 이끄는 미래 도시의 시장입니다!"</b><br><br>
+            디지털 기술은 삶의 질을 높여주지만, 무분별한 도입은 <b>디지털 불평등, 일자리 감소, 사생활 침해</b>라는 비극적인 <b>디스토피아</b>를 가져옵니다.<br><br>
+            교과서 p.214~215에 등장하는 <b>10대 사회 분야 정책</b>에 대해 긍정적 효과와 부작용을 고려하여 <b>[승인]</b> 또는 <b>[거절]</b>을 결정하세요.
+        </div>
+
+        <button class="btn btn-next" onclick="showConceptModal()">교과서 핵심 개념 확인 ➔</button>
+    </div>
+</div>
+
+<!-- STEP 3: 교과서 개념 안내 -->
+<div id="concept-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-title">📖 교과서 개념 안내 (p.213~215)</div>
+        <div class="modal-desc">
+            도시의 4대 지표는 <b>교과서 p.213의 8가지 디지털 사회 특성</b>을 기반으로 측정됩니다.
+        </div>
+
+        <div class="concept-box">
+            <div class="concept-title">1. 정보 접근성 &amp; 데이터 효율</div>
+            <ul class="concept-list">
+                <li><b>쉬운 정보 접근성:</b> 시공간 제약 없는 지식 공유</li>
+                <li><b>데이터의 디지털화:</b> 효율적 관리와 검색 용이성</li>
+            </ul>
+        </div>
+
+        <div class="concept-box">
+            <div class="concept-title">2. 콘텐츠 &amp; 사회적 연결</div>
+            <ul class="concept-list">
+                <li><b>디지털 콘텐츠의 혁신:</b> 생산·소비의 확대</li>
+                <li><b>미디어 소비 다양화 &amp; 사회적 연결:</b> SNS, 공유 플랫폼 확산</li>
+            </ul>
+        </div>
+
+        <div class="concept-box">
+            <div class="concept-title">3. 디지털 경제 &amp; 포용성</div>
+            <ul class="concept-list">
+                <li><b>디지털 경제 혁신:</b> AI, 빅데이터, 전자상거래 혁신</li>
+                <li><b>디지털 불평등:</b> 취약계층 소외 및 사회적 갈등</li>
+            </ul>
+        </div>
+
+        <div class="concept-box">
+            <div class="concept-title">4. 데이터 윤리 &amp; 보안</div>
+            <ul class="concept-list">
+                <li><b>개인 정보 보호와 보안:</b> 유출 범죄 및 사생활 침해 방지</li>
+            </ul>
+        </div>
+
+        <button class="btn btn-next" onclick="startGame()">디스토피아 방어 시작! 🚀</button>
+    </div>
+</div>
+
+<!-- STEP 4: 결과 및 수업 활동지 모달 -->
+<div id="result-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div id="modal-title" class="modal-title">결과</div>
+        <div id="modal-desc" class="modal-desc">내용</div>
+        
+        <!-- 시장 성향 강조 표시 상자 -->
+        <div id="type-box" class="type-badge-box">
+            <div class="type-badge-title">🏛️ 당신의 최종 시장 방어 성향</div>
+            <div id="market-type" class="type-badge-name">지식·정보 혁신 리더</div>
+            <div class="type-badge-notice">👉 위 성향 이름을 [멘티미터] 투표창에 제출해 주세요!</div>
+        </div>
+
+        <div id="report-section"></div>
+        <button class="btn btn-next" onclick="restartGame()">다시 도전하기</button>
+    </div>
+</div>
+
+<script>
+    let studentId = "";
+    let studentName = "";
+    let userLog = []; // 학생 선택 기록 저장용
+
+    // 교과서 p.214~215 10대 사회 분야 완벽 반영 덱
+    const cardDeck = [
+        {
+            round: 1,
+            field: "서비스 분야 (p.214)",
+            question: "모든 매장과 관공서의 창구를 100% 비대면 키오스크 및 AI 챗봇 서비스로 전환하시겠습니까?",
+            pos: "불필요한 대기시간 단축, 서비스 효율성 증대",
+            neg: "디지털 취약계층(고령층 등) 이용 어려움, 일자리 감소",
+            approve: { v1: 20, v2: 0, v3: -25, v4: 0 },
+            reject: { v1: -10, v2: 0, v3: 15, v4: 0 }
+        },
+        {
+            round: 2,
+            field: "금융 분야 (p.214)",
+            question: "실물 현금 사용을 완전 중단하고 모바일 뱅킹 및 디지털 화폐(CBDC) 전면 도입을 추진하시겠습니까?",
+            pos: "신용 거래 위험 감소, 재정 운영의 투명성 확보",
+            neg: "해킹 및 데이터 시스템 마비 시 사회적 혼란 발생",
+            approve: { v1: 15, v2: 0, v3: 10, v4: -20 },
+            reject: { v1: -10, v2: 0, v3: -5, v4: 15 }
+        },
+        {
+            round: 3,
+            field: "제조 분야 (p.214)",
+            question: "모든 제조 공장에 사물인터넷(IoT)과 딥러닝 기반 스마트 팩토리 무인 시스템을 의무화하시겠습니까?",
+            pos: "제조 공정 자동화, 맞춤형 대량 생산, 비용 절감",
+            neg: "현장 숙련 노동자 일자리 감소 및 사회적 갈등",
+            approve: { v1: 20, v2: 0, v3: -20, v4: 0 },
+            reject: { v1: -15, v2: 0, v3: 10, v4: 0 }
+        },
+        {
+            round: 4,
+            field: "교육 분야 (p.214)",
+            question: "종이 교과서를 완전 폐지하고 AI 기반 학습 도구 및 원격 강좌 교실로 100% 전환하시겠습니까?",
+            pos: "학생별 맞춤형 학습, 시공간 제약 없는 디지털 교육",
+            neg: "디지털 기기 보유 여부에 따른 교육 격차 발생",
+            approve: { v1: 15, v2: 15, v3: -20, v4: 0 },
+            reject: { v1: -10, v2: -10, v3: 15, v4: 0 }
+        },
+        {
+            round: 5,
+            field: "사회 분야 (p.214)",
+            question: "시민들의 출퇴근을 전면 재택·원격 근무 시스템으로 전환하도록 기업에 강제하시겠습니까?",
+            pos: "시간·공간 제약 없는 의사소통, 직업 세계의 유연화",
+            neg: "대면 네트워크 소외 및 비대면 소통으로 인한 오해",
+            approve: { v1: 10, v2: 20, v3: -10, v4: 0 },
+            reject: { v1: -5, v2: -15, v3: 10, v4: 0 }
+        },
+        {
+            round: 6,
+            field: "공공 분야 (p.215)",
+            question: "시청 방문 없이 모든 행정 서류 및 복지 신청을 데이터 중심 전자정부 플랫폼으로만 일원화하시겠습니까?",
+            pos: "시간·공간 제약 없는 효율적 행정 서비스 이용",
+            neg: "데이터 통합으로 인한 개인정보 유출 위험 증가",
+            approve: { v1: 20, v2: 0, v3: -10, v4: -20 },
+            reject: { v1: -15, v2: 0, v3: 10, v4: 15 }
+        },
+        {
+            round: 7,
+            field: "미디어 분야 (p.215)",
+            question: "1인 크리에이터 및 OTT 플랫폼의 자율 제작 지침을 대폭 완화하여 미디어 생산을 자율화하시겠습니까?",
+            pos: "다양한 콘텐츠 생산·소비 확대, 미디어 산업 활성화",
+            neg: "자극적·허위 정보(가짜뉴스) 확산 및 윤리적 문제",
+            approve: { v1: 0, v2: 25, v3: 0, v4: -20 },
+            reject: { v1: 0, v2: -15, v3: 0, v4: 15 }
+        },
+        {
+            round: 8,
+            field: "교통 분야 (p.215)",
+            question: "도심 내 자율주행 차 및 전동 킥보드 등 공유 교통 수단의 무제한 통행을 허용하시겠습니까?",
+            pos: "교통 문화 혁신, 이동 편의성 증대, 스마트 시티 구축",
+            neg: "보행자 안전 위협 및 이동 데이터 사생활 침해 논란",
+            approve: { v1: 15, v2: 10, v3: 0, v4: -20 },
+            reject: { v1: -10, v2: -5, v3: 0, v4: 15 }
+        },
+        {
+            round: 9,
+            field: "의료 분야 (p.215)",
+            question: "로봇 수술 및 원격 진료를 전면 허용하고 환자의 생체 빅데이터를 민간 의료 기관에 공유하시겠습니까?",
+            pos: "의료 서비스 접근성 및 효율성 증대, 상시 건강 관리",
+            neg: "민감한 민간 의료 정보 유출 및 데이터 오남용 우려",
+            approve: { v1: 15, v2: 0, v3: 10, v4: -25 },
+            reject: { v1: -10, v2: 0, v3: -5, v4: 20 }
+        },
+        {
+            round: 10,
+            field: "농·수·축산업 분야 (p.215)",
+            question: "농촌 지역의 재해 예방 및 생산을 드론과 스마트팜 무인 시스템으로 100% 자동화하시겠습니까?",
+            pos: "예측 가능한 친환경 생산, 농가 일손 부족 해결",
+            neg: "고가의 디지털 인프라 도입으로 인한 지역 농가 격차",
+            approve: { v1: 20, v2: 0, v3: -20, v4: 0 },
+            reject: { v1: -15, v2: 0, v3: 15, v4: 0 }
+        }
+    ];
+
+    let currentRound = 0;
+    let stats = { v1: 50, v2: 50, v3: 50, v4: 50 };
+
+    function submitStudentInfo() {
+        const idInput = document.getElementById('student-id').value.trim();
+        const nameInput = document.getElementById('student-name').value.trim();
+
+        if (!idInput || !nameInput) {
+            alert('학번과 이름을 올바르게 입력해 주세요.');
+            return;
+        }
+
+        studentId = idInput;
+        studentName = nameInput;
+        document.getElementById('student-display').innerText = `${studentId} ${studentName}`;
+
+        document.getElementById('login-modal').style.display = 'none';
+        document.getElementById('story-modal').style.display = 'flex';
+    }
+
+    function showConceptModal() {
+        document.getElementById('story-modal').style.display = 'none';
+        document.getElementById('concept-modal').style.display = 'flex';
+    }
+
+    function startGame() {
+        document.getElementById('concept-modal').style.display = 'none';
+        updateUI();
+    }
+
+    function updateUI() {
+        if (currentRound >= cardDeck.length) {
+            triggerWin();
+            return;
+        }
+
+        const card = cardDeck[currentRound];
+        document.getElementById('round-num').innerText = currentRound + 1;
+        document.getElementById('card-topic').innerText = card.field;
+        document.getElementById('card-question').innerText = card.question;
+        document.getElementById('pos-effect').innerText = `· 긍정적 효과: ${card.pos}`;
+        document.getElementById('neg-effect').innerText = `· 부작용 및 위험: ${card.neg}`;
+
+        for (let key in stats) {
+            const val = Math.max(0, Math.min(100, stats[key]));
+            document.getElementById(`${key}-val`).innerText = `${val}%`;
+            const bar = document.getElementById(`${key}-bar`);
+            bar.style.width = `${val}%`;
+
+            if (val <= 20) bar.style.backgroundColor = 'var(--accent-red)';
+            else if (val >= 80) bar.style.backgroundColor = 'var(--accent-green)';
+            else bar.style.backgroundColor = 'var(--accent-blue)';
+        }
+    }
+
+    function makeDecision(isApprove) {
+        const card = cardDeck[currentRound];
+        const changes = isApprove ? card.approve : card.reject;
+
+        // 선택 기록 저장
+        userLog.push({
+            field: card.field,
+            decision: isApprove ? "[승인]" : "[거절]",
+            pos: card.pos,
+            neg: card.neg
+        });
+
+        for (let key in changes) {
+            stats[key] += changes[key];
+        }
+
+        for (let key in stats) {
+            if (stats[key] <= 0) {
+                setTimeout(() => triggerGameOver(key), 200);
+                return;
+            }
+        }
+
+        currentRound++;
+        updateUI();
+    }
+
+    // 시장 성향 결정 로직
+    function getMarketType() {
+        const types = {
+            v1: "지식·정보 혁신 리더",
+            v2: "디지털 문화 선도자",
+            v3: "디지털 포용주의 리더",
+            v4: "디지털 윤리 가디언"
+        };
+        
+        let maxKey = "v1";
+        let maxVal = stats.v1;
+        
+        for (let key in stats) {
+            if (stats[key] > maxVal) {
+                maxVal = stats[key];
+                maxKey = key;
+            }
+        }
+        return types[maxKey];
+    }
+
+    function triggerGameOver(failedKey) {
+        const modal = document.getElementById('result-modal');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+
+        title.innerText = "🚨 디스토피아 도래 (Game Over)";
+        title.style.color = "var(--accent-red)";
+
+        const failMessages = {
+            v1: "정보 접근성 및 데이터 관리 기능이 마비되었습니다!",
+            v2: "콘텐츠 생태계와 사회적 연결성이 소멸되었습니다!",
+            v3: "디지털 불평등과 소외 현상이 극에 달했습니다!",
+            v4: "개인정보 유출과 보안 범죄로 사회적 신뢰가 무너졌습니다!"
+        };
+
+        desc.innerHTML = `<b>[${studentId} ${studentName}] 시장님의 정책 결과:</b><br><br>` + failMessages[failedKey];
+        document.getElementById('market-type').innerText = getMarketType();
+        renderReport();
+        modal.style.display = "flex";
+    }
+
+    function triggerWin() {
+        const modal = document.getElementById('result-modal');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+
+        title.innerText = "🎉 10대 분야 디스토피아 방어 성공!";
+        title.style.color = "var(--accent-green)";
+
+        desc.innerHTML = `<b>[${studentId} ${studentName}] 시장님, 축하합니다!</b><br>10대 사회 분야 정책을 균형 있게 이끌었습니다.`;
+        document.getElementById('market-type').innerText = getMarketType();
+        renderReport();
+        modal.style.display = "flex";
+    }
+
+    // 자기주도 학습 활동지 출력 함수
+    function renderReport() {
+        const reportArea = document.getElementById('report-section');
+        let html = `<div style="text-align:left; font-size:0.85rem; font-weight:700; margin:15px 0 8px 0;">📝 [나의 선택] 분야별 정책 선택 기록:</div>`;
+        
+        userLog.forEach((log, index) => {
+            html += `
+                <div class="report-card">
+                    <b>${index + 1}. ${log.field}</b> ➔ <span style="color:var(--accent-blue)">${log.decision}</span><br>
+                    <span style="color:#16a34a">· 긍정적 결과: ${log.pos}</span><br>
+                    <span style="color:#dc2626">· 부작용: ${log.neg}</span>
+                </div>
+            `;
+        });
+
+        reportArea.innerHTML = html;
+    }
+
+    function restartGame() {
+        currentRound = 0;
+        stats = { v1: 50, v2: 50, v3: 50, v4: 50 };
+        userLog = [];
+        document.getElementById('result-modal').style.display = "none";
+        updateUI();
+    }
+</script>
+</body>
+</html>
